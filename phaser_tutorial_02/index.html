@@ -1,0 +1,154 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+	<meta charset="UTF-8" />
+	<title>Phaser - Making your first game, part 1</title>
+	<script type="text/javascript" src="js/phaser.min.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<script type="text/javascript">
+var screenWidth = 600;
+var screenHeight = 600;
+var game = new Phaser.Game(screenWidth, screenHeight, Phaser.AUTO, '');
+var numRows = 10;
+var numCols = 10;
+var tileHeight = screenHeight/numRows;
+var tileWidth = screenWidth/numCols;
+var xCenter = this.tileWidth/2;
+var yCenter = this.tileHeight/2;
+var selectedPlayer = null;
+var move = false;
+
+function createBoard(numRows, numCols) {
+	var gameBoard = new Array(numRows);
+	for (var i = 0; i < numRows; i++){
+		gameBoard[i] = new Array(numCols)
+		for (var j = 0; j <numCols; j++) {
+			gameBoard[i][j] = {};
+		}
+	}
+	return gameBoard;
+}
+
+function createPlayer(state, x, y, sprite, radius) {
+	player = {};
+	player.xCoord = x;
+	player.yCoord = y;
+	player.xTrue = (player.xCoord * tileWidth) + xCenter;
+	player.yTrue = (player.yCoord * tileHeight) + yCenter;
+	player.sprite = game.add.sprite(player.xTrue,player.yTrue, sprite);
+	player.sprite.anchor.set(0.5);
+	player.sprite.tint = 0xffffff;
+	player.sprite.inputEnabled = true;
+	player.sprite.events.onInputDown.add(selectPlayer, {state: state, player: player});
+	player.radius = radius;
+	return player;
+}
+
+function selectPlayer() {
+	if (selectedPlayer === this.player) {
+		selectedPlayer = null;
+	} else if (selectedPlayer) {
+		this.player.sprite.destroy();
+		this.state.gameBoard[this.player.xCoord][this.player.yCoord].occupied = null;
+	} else {
+		selectedPlayer = this.player;
+	}
+	console.log('select');
+}
+
+function moveTo() {
+	if (selectedPlayer) {
+		if (Math.abs(selectedPlayer.xCoord - this.xCoord) <= selectedPlayer.radius
+			&& Math.abs(selectedPlayer.yCoord - this.yCoord) <= selectedPlayer.radius) {
+			this.gameBoard[selectedPlayer.xCoord][selectedPlayer.yCoord].occupied = null;
+			selectedPlayer.xCoord = this.xCoord;
+			selectedPlayer.yCoord = this.yCoord;
+			move = true;
+		} else {
+			selectedPlayer = null;
+		}
+	}
+}
+
+var mainState = {
+	
+	preload:function() {
+		game.load.image('sky', 'assets/sky.png');
+		game.load.image('ground', 'assets/platform.png');
+		game.load.image('star', 'assets/star.png');
+	},
+
+	create:function() {
+		this.gameBoard = createBoard(numRows, numCols);
+		for (var i = 0; i < numRows; i++) {
+			for (var j = 0; j < numCols; j++) {
+				this.gameBoard[i][j].sprite = (game.add.sprite(i*tileWidth,j*tileHeight, 'ground'));
+				this.gameBoard[i][j].sprite.width = tileWidth;
+				this.gameBoard[i][j].sprite.height = tileHeight;
+				this.gameBoard[i][j].sprite.tint = Math.random() * 0xffffff;
+				this.gameBoard[i][j].sprite.inputEnabled = true;
+				this.gameBoard[i][j].sprite.events.onInputDown.add(moveTo, {gameBoard: this.gameBoard, xCoord: i, yCoord: j});
+			}
+		}
+		this.players = [];
+		this.players[0] = createPlayer(this, 0,0,'star', 2);
+		this.players[1] = createPlayer(this, 3,2,'star', 3);
+		this.players[2] = createPlayer(this, 6,3,'star', 1);
+		this.players[3] = createPlayer(this, 9,6,'star', 2);
+		for (var i = 0; i < this.players.length; i++) {
+			this.gameBoard[this.players[i].xCoord][this.players[i].yCoord].occupied = this.players[i];
+		}
+
+
+	},
+
+	update:function() {
+		for (var i = 0; i < numRows; i++) {
+			for (var j = 0; j < numCols; j++) {
+				this.gameBoard[i][j].sprite.tint = Math.random() * 0xffffff;
+			}
+		}
+
+		if (move) {
+			console.log('move if');
+			selectedPlayer.xTrue = (selectedPlayer.xCoord * tileWidth) + xCenter;
+			selectedPlayer.yTrue = (selectedPlayer.yCoord * tileHeight) + yCenter;
+			selectedPlayer.sprite.x = selectedPlayer.xTrue;
+			selectedPlayer.sprite.y = selectedPlayer.yTrue;
+			this.gameBoard[selectedPlayer.xCoord][selectedPlayer.yCoord].occupied = selectedPlayer;
+			selectedPlayer = null;
+			move = false;
+		}
+		if (selectedPlayer) {
+			console.log('is selected loop');
+			for (var i = 0; i < numRows; i++) {
+				for (var j = 0; j < numCols; j++) {
+					if (Math.abs(selectedPlayer.xCoord - i) <= selectedPlayer.radius
+						&& Math.abs(selectedPlayer.yCoord - j) <= selectedPlayer.radius) {
+						if (this.gameBoard[i][j].occupied) {
+							this.gameBoard[i][j].sprite.tint = 0xaaaaff;
+						} else {
+							this.gameBoard[i][j].sprite.tint = 0xaa44ff;
+						}
+					} else {
+						this.gameBoard[i][j].sprite.tint = Math.random() * 0xffffff;
+					}
+				}
+			}
+		}
+	},
+}
+
+game.state.add('main state', mainState)
+game.state.start('main state')
+</script>
+
+</body>
+</html>
